@@ -1,5 +1,7 @@
 *.swp
+*.pyc
 
+.vscode/
 
 emnist.zip
 emnist/

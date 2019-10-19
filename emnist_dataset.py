@@ -11,6 +11,12 @@ import zipfile
 
 class EmnistDataset:
 
+    """
+    Extracts and loads the EMNIST datasets
+
+    TODO: Make a custom PyTorch Dataset class to load larger splits. Currently it all has to be in ram at the same time. 
+    """
+
     def __init__(self):
         self.mnist_zip = 'emnist.zip'
         self.data_folder = 'emnist'
@@ -50,21 +56,11 @@ class EmnistDataset:
         csv_filename = self.data_folder + "/emnist-" + split + "-" + stage + ".csv"
         print("Loading", csv_filename)
         data_frame = pd.read_csv(csv_filename, header=None)
-        print("Finished loading dataframe")
 
         tensor_x = torch.Tensor(data_frame.iloc[:,1:].values.reshape((-1, 1, 28, 28)).astype(np.float32)) # Load the images
         tensor_y = torch.Tensor(data_frame.iloc[:,0].values.astype(np.int))  # Load the labels
 
-        print("returning tensors")
-        return tensor_x, tensor_y
-        """
-        my_dataset = torch.utils.data.TensorDataset(tensor_x, tensor_y)
-        my_dataloader = torch.utils.data.DataLoader(my_dataset)
-
-        print(tensor_x.size())
-        print(tensor_y.size())
-        """
-
+        return torch.utils.data.TensorDataset(tensor_x, tensor_y)
 
     def load_mapping(self, split):
         mapping = {}

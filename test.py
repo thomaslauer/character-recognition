@@ -82,9 +82,8 @@ def main():
     emnist.prep_data()
 
     # Get the tensors from the dataset
-    train_x, train_y = emnist.load_split('mnist', 'train')
-    train_dataset = torch.utils.data.TensorDataset(train_x, train_y)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1000)
+    train_dataset = emnist.load_split('mnist', 'train')
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size)
 
     keys = emnist.load_mapping('mnist')
 
