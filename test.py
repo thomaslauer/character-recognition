@@ -46,6 +46,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
 def main():
 
+    # All these args were stolen from the pytorch mnist example
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
@@ -76,13 +77,14 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
 
+    # Prep the emnist dataset
     emnist = EmnistDataset()
     emnist.prep_data()
 
+    # Get the tensors from the dataset
     train_x, train_y = emnist.load_split('mnist', 'train')
     train_dataset = torch.utils.data.TensorDataset(train_x, train_y)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1000)
-    #test_loader = emnist.load_split('mnist', 'test')
 
     keys = emnist.load_mapping('mnist')
 
