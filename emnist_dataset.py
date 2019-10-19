@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pandas as pd
 import sys
+import torch
 import zipfile
 
 class EmnistDataset:
@@ -49,27 +50,30 @@ class EmnistDataset:
         csv_filename = self.data_folder + "/emnist-" + split + "-" + stage + ".csv"
         print("Loading", csv_filename)
         data_frame = pd.read_csv(csv_filename, header=None)
+        print("Finished loading dataframe")
 
-        # first column is the label, the rest is the image data
-        labels = data_frame.iloc[:,0].values
-        images = data_frame.iloc[:,1:].values
+        tensor_x = torch.Tensor(data_frame.iloc[:,1:].values.reshape((-1, 1, 28, 28)).astype(np.float32)) # Load the images
+        tensor_y = torch.Tensor(data_frame.iloc[:,0].values.astype(np.int))  # Load the labels
 
-        # load the mapping for this split (converts labels to actual ascii codes)
-        self.mapping = self.load_mapping(split)
+        print("returning tensors")
+        return tensor_x, tensor_y
+        """
+        my_dataset = torch.utils.data.TensorDataset(tensor_x, tensor_y)
+        my_dataloader = torch.utils.data.DataLoader(my_dataset)
 
-        for i in range(10):
-            print("Label is ", self.mapping[int(labels[i])])
-            self.show_image(images[i])
+        print(tensor_x.size())
+        print(tensor_y.size())
+        """
 
 
     def load_mapping(self, split):
-        d = {}
+        mapping = {}
         with open(self.data_folder + "/emnist-" + split + "-mapping.txt") as f:
             for line in f:
                 (key, val) = line.split()
-                d[int(key)] = chr(int(val))
+                mapping[int(key)] = chr(int(val))
         
-        return d
+        return mapping
 
     def show_image(self, image):
         reshaped_image = np.reshape(image, (28, 28)).transpose()
@@ -77,10 +81,12 @@ class EmnistDataset:
         plt.imshow(reshaped_image)
         plt.show()
 
-
 if __name__ == '__main__':
     dataset = EmnistDataset()
 
     dataset.prep_data()
-    dataset.load_split('bymerge', 'test')
 
+    asdf = dataset.load_split('mnist', 'train')
+    print(asdf)
+
+    print(type(asdf))
