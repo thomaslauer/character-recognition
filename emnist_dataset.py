@@ -57,8 +57,8 @@ class EmnistDataset:
         print("Loading", csv_filename)
         data_frame = pd.read_csv(csv_filename, header=None)
 
-        tensor_x = torch.Tensor(data_frame.iloc[:,1:].values.reshape((-1, 1, 28, 28)).astype(np.float32)) # Load the images
-        tensor_y = torch.Tensor(data_frame.iloc[:,0].values.astype(np.int))  # Load the labels
+        tensor_x = torch.Tensor(data_frame.iloc[:,1:].values.reshape((-1, 1, 28, 28))).float() # Load the images
+        tensor_y = torch.Tensor(data_frame.iloc[:,0].values).long()  # Load the labels
 
         return torch.utils.data.TensorDataset(tensor_x, tensor_y)
 
@@ -76,13 +76,3 @@ class EmnistDataset:
 
         plt.imshow(reshaped_image)
         plt.show()
-
-if __name__ == '__main__':
-    dataset = EmnistDataset()
-
-    dataset.prep_data()
-
-    asdf = dataset.load_split('mnist', 'train')
-    print(asdf)
-
-    print(type(asdf))
