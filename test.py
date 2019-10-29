@@ -25,6 +25,26 @@ class Net(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+class Net2(nn.Module):
+    def __init__(self, classes):
+        super(Net2, self).__init__()
+        self.conv1 = nn.Conv2d(1, 50, 5, 1)
+        self.conv2 = nn.Conv2d(50, 100, 5, 1)
+        self.fc1 = nn.Linear(4*4*100, 5000)
+        self.fc2 = nn.Linear(5000, 1000)
+        self.fc3 = nn.Linear(1000, classes)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = x.view(-1, 4*4*100)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return F.log_softmax(x, dim=1)
+
 
 def train(args, model, device, train_loader, optimizer, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -98,7 +118,7 @@ def main():
     emnist = EmnistDataset()
     emnist.prep_data()
 
-    split = 'mnist'
+    split = 'bymerge'
 
     # Get the tensors from the dataset
     train_dataset = emnist.load_split(split, 'train')
@@ -109,7 +129,7 @@ def main():
 
     keys = emnist.load_mapping(split)
 
-    model = Net(len(keys)).to(device)
+    model = Net2(len(keys)).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
