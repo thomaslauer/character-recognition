@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
+import os
 
 
 class Net(nn.Module):
@@ -79,6 +81,8 @@ def test(args, model, device, test_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+    
+    return correct / len(test_loader.dataset)
 
 
 def main():
@@ -113,28 +117,66 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
+    split = 'bymerge'
 
     # Prep the emnist dataset
     emnist = EmnistDataset()
     emnist.prep_data()
 
-    split = 'bymerge'
-
+    """
     # Get the tensors from the dataset
     train_dataset = emnist.load_split(split, 'train')
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size)
 
     test_dataset = emnist.load_split(split, 'test')
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size)
+    """
+
+    train_dataset = torchvision.datasets.ImageFolder(
+        root=os.path.join("../output", split, "train"),
+        transform=torchvision.transforms.Compose([
+            torchvision.transforms.Grayscale(num_output_channels=1),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
+    )
+
+    test_dataset = torchvision.datasets.ImageFolder(
+        root=os.path.join("../output", split, "test"),
+        transform=torchvision.transforms.Compose([
+            torchvision.transforms.Grayscale(num_output_channels=1),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset, 
+        batch_size=args.batch_size,
+        num_workers=4,
+        shuffle=True
+    )
+
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_dataset, 
+        batch_size=args.test_batch_size,
+        num_workers=4,
+        shuffle=True
+    )
 
     keys = emnist.load_mapping(split)
 
     model = Net2(len(keys)).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
+    if not os.path.exists('progress.csv'):
+        with open('progress.csv', 'a') as progress_file:
+            progress_file.write('epoch,test_loss\n')
+
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        test(args, model, device, test_loader)
+        test_loss = test(args, model, device, test_loader)
+
+        with open('progress.csv', 'a') as progress_file:
+            progress_file.write('{},{}\n'.format(epoch, test_loss))
     
     if args.save_model:
         torch.save(model.state_dict(), 'emnist_model.pt')
