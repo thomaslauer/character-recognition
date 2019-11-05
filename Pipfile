@@ -9,6 +9,8 @@ pandas = "*"
 numpy = "*"
 matplotlib = "*"
 pyqt5 = "*"
+torchvision = "*"
+opencv-python = "*"
 
 [dev-packages]
 pylint = "*"

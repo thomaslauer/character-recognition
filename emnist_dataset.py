@@ -34,6 +34,28 @@ class EmnistDataset:
             with zipfile.ZipFile(self.mnist_zip, 'r') as zip_ref:
                 zip_ref.extractall(self.data_folder)
 
+    def load_split_numpy(self, split, stage):
+        """
+        Loads the same splits, but in numpy arrays instead of tensors.
+        """
+
+        if not split in self.splits:
+            print(split, "is not a valid EMNIST split")
+            return
+
+        if not stage in self.stages:
+            print(stage, "is not a valid stage")
+            return
+
+        csv_filename = self.data_folder + "/emnist-" + split + "-" + stage + ".csv"
+        print("Loading", csv_filename)
+        data_frame = pd.read_csv(csv_filename, header=None)
+
+        np_x = data_frame.iloc[:,1:].values.reshape((-1, 1, 28, 28)) # Load the images
+        np_y = data_frame.iloc[:,0].values  # Load the labels
+
+        return np_x, np_y
+
     def load_split(self, split, stage):
         """
         Loads a specific dataset file from the csv. 

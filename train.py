@@ -135,6 +135,9 @@ def main():
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(args, model, device, test_loader)
+    
+    if args.save_model:
+        torch.save(model.state_dict(), 'emnist_model.pt')
 
 if __name__ == '__main__':
     main()
