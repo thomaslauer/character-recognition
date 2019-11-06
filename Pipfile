@@ -11,6 +11,7 @@ matplotlib = "*"
 pyqt5 = "*"
 torchvision = "*"
 opencv-python = "*"
+sklearn = "*"
 
 [dev-packages]
 pylint = "*"

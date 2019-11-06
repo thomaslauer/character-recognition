@@ -1,13 +1,17 @@
 from emnist_dataset import EmnistDataset
 
 import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from sklearn.metrics import confusion_matrix
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
-import os
 
+plt.ion()
 
 class Net(nn.Module):
     def __init__(self, classes):
@@ -68,6 +72,10 @@ def test(args, model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+
+    full_target = None
+    full_pred = None
+
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
@@ -76,13 +84,21 @@ def test(args, model, device, test_loader):
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
+            if not isinstance(full_target, np.ndarray):
+                full_target = target.cpu().numpy()
+                full_pred = pred.view_as(target).cpu().numpy()
+            else: 
+                full_target = np.concatenate((full_target, target.cpu().numpy()))
+                full_pred = np.concatenate((full_pred, pred.view_as(target).cpu().numpy()))
+
     test_loss /= len(test_loader.dataset)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
     
-    return correct / len(test_loader.dataset)
+    confusion_mat = confusion_matrix(full_target, full_pred)
+    return correct / len(test_loader.dataset), confusion_mat
 
 
 def main():
@@ -174,7 +190,17 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        test_loss = test(args, model, device, test_loader)
+        test_loss, confusion_mat = test(args, model, device, test_loader)
+
+        """
+        plt.clf()
+        plt.cla()
+        plt.imshow(confusion_mat)
+        for (i,j),label in np.ndenumerate(confusion_mat):
+            plt.gca().text(i,j,label, ha='center', va='center')
+        plt.show()
+        plt.pause(0.001)
+        """
 
         with open('progress.csv', 'a') as progress_file:
             progress_file.write('{},{}\n'.format(epoch, test_loss))
