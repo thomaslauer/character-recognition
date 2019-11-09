@@ -51,8 +51,51 @@ class Net2(nn.Module):
         x = self.fc3(x)
         return F.log_softmax(x, dim=1)
 
+def load_densenet121(num_classes):
+    model = torchvision.models.densenet121(pretrained=True)
+
+    # freeze weights
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # define fully connected layer
+    fc = nn.Sequential(
+        nn.Linear(1024, 460),
+        nn.ReLU(),
+        nn.Dropout(0.4),
+
+        nn.Linear(460, num_classes),
+        nn.LogSoftmax(dim=1)
+    )
+
+    model.classifier = fc
+
+    return model
+
+
 def load_vgg16(num_classes):
     model = torchvision.models.vgg16(pretrained=True)
+
+    # freeze weights
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # define fully connected layer
+    fc = nn.Sequential(
+        nn.Linear(25088, 460),
+        nn.ReLU(),
+        nn.Dropout(0.4),
+
+        nn.Linear(460, num_classes),
+        nn.LogSoftmax(dim=1)
+    )
+
+    model.classifier = fc
+
+    return model
+
+def load_vgg11(num_classes):
+    model = torchvision.models.vgg11(pretrained=True)
 
     # freeze weights
     for param in model.parameters():
@@ -106,14 +149,12 @@ def test(args, model, device, test_loader):
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-            """
             if not isinstance(full_target, np.ndarray):
                 full_target = target.cpu().numpy()
                 full_pred = pred.view_as(target).cpu().numpy()
             else: 
                 full_target = np.concatenate((full_target, target.cpu().numpy()))
                 full_pred = np.concatenate((full_pred, pred.view_as(target).cpu().numpy()))
-            """
 
     test_loss /= len(test_loader.dataset)
 
@@ -121,11 +162,8 @@ def test(args, model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
     
-    """
     confusion_mat = confusion_matrix(full_target, full_pred)
     return correct / len(test_loader.dataset), confusion_mat
-    """
-    return correct / len(test_loader.dataset), None
 
 
 def main():
@@ -199,6 +237,7 @@ def main():
         root="../chars74k/English/Fnt",
         transform=torchvision.transforms.Compose([
             torchvision.transforms.Resize((224, 224)),
+            torchvision.transforms.RandomAffine((0, 360)),
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                              std=[0.229, 0.224, 0.225])
