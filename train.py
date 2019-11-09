@@ -51,8 +51,30 @@ class Net2(nn.Module):
         x = self.fc3(x)
         return F.log_softmax(x, dim=1)
 
+def load_vgg16(num_classes):
+    model = torchvision.models.vgg16(pretrained=True)
+
+    # freeze weights
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # define fully connected layer
+    fc = nn.Sequential(
+        nn.Linear(25088, 460),
+        nn.ReLU(),
+        nn.Dropout(0.4),
+
+        nn.Linear(460, num_classes),
+        nn.LogSoftmax(dim=1)
+    )
+
+    model.classifier = fc
+
+    return model
+
 
 def train(args, model, device, train_loader, optimizer, epoch):
+    model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
 
         data, target = data.to(device), target.to(device)
@@ -69,7 +91,6 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
 
 def test(args, model, device, test_loader):
-    model.eval()
     test_loss = 0
     correct = 0
 
@@ -77,6 +98,7 @@ def test(args, model, device, test_loader):
     full_pred = None
 
     with torch.no_grad():
+        model.eval()
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
@@ -84,12 +106,14 @@ def test(args, model, device, test_loader):
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
+            """
             if not isinstance(full_target, np.ndarray):
                 full_target = target.cpu().numpy()
                 full_pred = pred.view_as(target).cpu().numpy()
             else: 
                 full_target = np.concatenate((full_target, target.cpu().numpy()))
                 full_pred = np.concatenate((full_pred, pred.view_as(target).cpu().numpy()))
+            """
 
     test_loss /= len(test_loader.dataset)
 
@@ -97,8 +121,11 @@ def test(args, model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
     
+    """
     confusion_mat = confusion_matrix(full_target, full_pred)
     return correct / len(test_loader.dataset), confusion_mat
+    """
+    return correct / len(test_loader.dataset), None
 
 
 def main():
@@ -147,6 +174,8 @@ def main():
     test_dataset = emnist.load_split(split, 'test')
     """
 
+    """
+    # EMNIST dataset loader
     train_dataset = torchvision.datasets.ImageFolder(
         root=os.path.join("../output", split, "train"),
         transform=torchvision.transforms.Compose([
@@ -164,6 +193,21 @@ def main():
             torchvision.transforms.Normalize(mean=[0.5], std=[0.5])
         ])
     )
+    """
+
+    full_dataset = torchvision.datasets.ImageFolder(
+        root="../chars74k/English/Fnt",
+        transform=torchvision.transforms.Compose([
+            torchvision.transforms.Resize((224, 224)),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                             std=[0.229, 0.224, 0.225])
+        ])
+    )
+
+    train_size = int(0.8 * len(full_dataset))
+    test_size = len(full_dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(full_dataset, [train_size, test_size])
 
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset, 
@@ -179,10 +223,9 @@ def main():
         shuffle=True
     )
 
-    keys = emnist.load_mapping(split)
-
-    model = Net2(len(keys)).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    num_classes = 62
+    model = load_vgg16(num_classes).to(device)
+    optimizer = optim.SGD(model.classifier.parameters(), lr=args.lr, momentum=args.momentum)
 
     if not os.path.exists('progress.csv'):
         with open('progress.csv', 'a') as progress_file:
