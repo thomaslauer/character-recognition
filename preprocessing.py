@@ -6,14 +6,13 @@ import matplotlib.pyplot as plt
 import os
 
 
-
 def rotateImage(image, angle):
     image_center = tuple(np.array(image.shape[1::-1]) / 2)
     rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
     result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
     return result
 
-def process_images(split, stage):
+def process_emnist(split, stage):
     emnist_dataset = EmnistDataset()
 
     data_x, data_y = emnist_dataset.load_split_numpy(split, stage)
@@ -37,7 +36,13 @@ def process_images(split, stage):
 
         cv2.imwrite(os.path.join(output_dir, "{0:03d}".format(data_y[i]), "{0:09d}.jpg".format(i)), image)
 
+def process_char74k(split):
+    print("asdf")
+
 
 if __name__ == "__main__":
-    process_images("bymerge", "train")
-    process_images("bymerge", "test")
+    """
+    process_emnist("mnist", "train")
+    process_emnist("mnist", "test")
+    """
+    process_char74k("asdf")
